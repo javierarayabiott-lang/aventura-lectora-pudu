@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aventura Lectora con Pablito el Pudú</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;800;900&display=swap');
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .font-kids {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+
+    /* Silabeo con colores alternados */
+    .syllable-0 { color: #0284c7; } /* azul */
+    .syllable-1 { color: #d97706; } /* naranja */
+    .syllable-2 { color: #059669; } /* verde */
+    .syllable-3 { color: #7c3aed; } /* morado */
+
+    /* Animaciones suaves */
+    @keyframes bounce-gentle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-gentle {
+      animation: bounce-gentle 2.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { transform: scale(1.03); box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.2); }
+    }
+    .animate-glow {
+      animation: pulse-glow 1.8s infinite ease-in-out;
+    }
+
+    @keyframes slide-in-syllable {
+      0% { transform: scale(0.6) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .animate-syllable {
+      animation: slide-in-syllable 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Print styles para el diploma */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #diploma-printable, #diploma-printable * {
+        visibility: visible;
+      }
+      #diploma-printable {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        box-shadow: none;
+        border: 8px solid #f59e0b;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-sky-100 via-amber-50 to-emerald-100 min-h-screen text-slate-800 flex flex-col justify-between">
+
+  <!-- ================= TOP BAR / NAVEGACIÓN ================= -->
+  <header class="bg-white/90 backdrop-blur-md border-b-2 border-amber-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <!-- Logo y Mascota Mini -->
+      <div class="flex items-center gap-3 cursor-pointer" id="btn-home-logo">
+        <div class="w-11 h-11 bg-amber-100 rounded-full border-2 border-amber-400 flex items-center justify-center shadow-inner relative overflow-hidden">
+          <span class="text-2xl" id="header-avatar-emoji">🦌</span>
+        </div>
+        <div>
+          <h1 class="font-kids font-bold text-lg md:text-xl text-amber-700 leading-tight flex items-center gap-1">
+            <span>Aventura Lectora</span>
+            <span class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-full">3° Básico</span>
+          </h1>
+          <p class="text-xs text-slate-500 font-semibold" id="header-subtitle">¡Viajando con Pablito el Pudú!</p>
+        </div>
+      </div>
+
+      <!-- Barra de Estado: Estrellas y Nivel -->
+      <div class="flex items-center gap-2 sm:gap-4">
+        <!-- Contador de Estrellas -->
+        <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-2xl shadow-sm">
+          <span class="text-xl">⭐</span>
+          <span class="font-kids font-bold text-amber-800 text-base md:text-lg" id="total-stars-count">0</span>
+          <span class="text-xs text-amber-600 font-semibold hidden sm:inline">estrellas</span>
+        </div>
+
+        <!-- Botón Trofeos / Armario -->
+        <button id="btn-open-trophies" class="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition shadow-sm flex items-center gap-1 text-sm font-bold" title="Premios y Ropita">
+          <span>🏆</span>
+          <span class="hidden md:inline">Trofeos</span>
+        </button>
+
+        <!-- Botón Guía Docente / Padres -->
+        <button id="btn-open-guide" class="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition shadow-sm flex items-center gap-1 text-sm font-bold" title="Orientaciones de Lectura">
+          <span>💡</span>
+          <span class="hidden md:inline">Guía Padres</span>
+        </button>
+
+        <!-- Botón Ajustes -->
+        <button id="btn-open-settings" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 transition shadow-sm" title="Ajustes de Lectura">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </button>
+
+        <!-- Botón Audio Silencio -->
+        <button id="btn-toggle-sound" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 transition shadow-sm" title="Activar/Desactivar Sonido">
+          <span id="sound-icon" class="text-base">🔊</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= CONTENEDOR PRINCIPAL ================= -->
+  <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow flex flex-col justify-center">
+
+    <!-- ================= VISTA 1: MAPA DE AVENTURAS (HOME) ================= -->
+    <section id="view-map" class="space-y-6">
+      <!-- Tarjeta de Bienvenida con Mascota -->
+      <div class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+        <div class="absolute -right-8 -bottom-8 opacity-15 pointer-events-none">
+          <svg class="w-64 h-64 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </div>
+
+        <!-- Mascota Interactiva -->
+        <div class="flex-shrink-0 relative text-center">
+          <div class="w-28 h-28 bg-white/20 backdrop-blur rounded-3xl border-4 border-white/60 flex items-center justify-center text-6xl shadow-lg animate-gentle relative mx-auto" id="avatar-container">
+            <span id="main-avatar-emoji">🦌</span>
+            <span id="avatar-accessory" class="absolute -top-3 -right-2 text-3xl">🧢</span>
+          </div>
+          <button id="btn-change-accessory" class="mt-2 text-xs bg-white text-amber-800 font-bold px-3 py-1 rounded-full shadow hover:bg-amber-100 transition">
+            Cambiar estilo ✨
+          </button>
+        </div>
+
+        <div class="flex-grow text-center md:text-left space-y-2">
+          <div class="inline-block bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+            🇨🇱 Misión: Gran Viaje por Chile
+          </div>
+          <h2 class="font-kids font-bold text-2xl md:text-3xl drop-shadow">
+            ¡Hola, Explorador Lector!
+          </h2>
+          <p class="text-amber-100 text-sm md:text-base leading-relaxed max-w-xl">
+            Acompaña a <strong>Pablito el Pudú</strong> a recorrer Chile. Entrenaremos tus ojos para unir sílabas al instante, cazar palabras a la velocidad de la luz y leer oraciones completas con fluidez.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-2 justify-center md:justify-start">
+            <span class="bg-amber-600/40 border border-amber-300/40 text-xs px-3 py-1 rounded-xl flex items-center gap-1 font-semibold">
+              🎯 4 Entrenamientos
+            </span>
+            <span class="bg-amber-600/40 border border-amber-300/40 text-xs px-3 py-1 rounded-xl flex items-center gap-1 font-semibold">
+              ✨ Gana Estrellas y Medallas
+            </span>
+            <span class="bg-amber-600/40 border border-amber-300/40 text-xs px-3 py-1 rounded-xl flex items-center gap-1 font-semibold">
+              🗣️ Pronunciación en Voz Alta
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Niveles / Zonas de Chile -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-kids font-bold text-xl text-slate-800 flex items-center gap-2">
+            <span>🗺️</span> Elige tu Misión de Lectura
+          </h3>
+          <span class="text-xs text-slate-500 font-semibold">Progresión pedagógica por niveles</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- NIVEL 1 -->
+          <div class="bg-white rounded-3xl p-5 border-2 border-sky-200 hover:border-sky-400 shadow-md hover:shadow-lg transition flex flex-col justify-between group cursor-pointer relative overflow-hidden" onclick="window.gameApp.startLevel(1)">
+            <div class="absolute top-0 right-0 bg-sky-500 text-white font-bold text-xs px-3 py-1 rounded-bl-2xl">
+              Nivel 1
+            </div>
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  🌉
+                </div>
+                <div>
+                  <h4 class="font-kids font-bold text-lg text-slate-800">El Puente de Sílabas</h4>
+                  <p class="text-xs text-sky-700 font-semibold">Zona Norte: Atacama</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                <strong>Objetivo:</strong> Unir sílabas separadas en un solo golpe de voz continuo. ¡Di adiós a leer pausando letra por letra!
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div class="flex items-center gap-1 text-amber-500 text-sm" id="stars-level-1">
+                ⭐⭐⭐
+              </div>
+              <span class="bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-xl group-hover:bg-sky-700 transition flex items-center gap-1">
+                Jugar <span>➔</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- NIVEL 2 -->
+          <div class="bg-white rounded-3xl p-5 border-2 border-emerald-200 hover:border-emerald-400 shadow-md hover:shadow-lg transition flex flex-col justify-between group cursor-pointer relative overflow-hidden" onclick="window.gameApp.startLevel(2)">
+            <div class="absolute top-0 right-0 bg-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-bl-2xl">
+              Nivel 2
+            </div>
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  ⚡
+                </div>
+                <div>
+                  <h4 class="font-kids font-bold text-lg text-slate-800">Ojo Relámpago (Flash)</h4>
+                  <p class="text-xs text-emerald-700 font-semibold">Zona Centro: Cordillera</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                <strong>Objetivo:</strong> Taquistoscopio. La palabra aparece un instante para que tu cerebro la reconozca de un solo vistazo global.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div class="flex items-center gap-1 text-amber-500 text-sm" id="stars-level-2">
+                ⭐⭐⭐
+              </div>
+              <span class="bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl group-hover:bg-emerald-700 transition flex items-center gap-1">
+                Jugar <span>➔</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- NIVEL 3 -->
+          <div class="bg-white rounded-3xl p-5 border-2 border-amber-200 hover:border-amber-400 shadow-md hover:shadow-lg transition flex flex-col justify-between group cursor-pointer relative overflow-hidden" onclick="window.gameApp.startLevel(3)">
+            <div class="absolute top-0 right-0 bg-amber-500 text-white font-bold text-xs px-3 py-1 rounded-bl-2xl">
+              Nivel 3
+            </div>
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  🚂
+                </div>
+                <div>
+                  <h4 class="font-kids font-bold text-lg text-slate-800">El Tren de las Frases</h4>
+                  <p class="text-xs text-amber-700 font-semibold">Zona Sur: Bosques y Lagos</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                <strong>Objetivo:</strong> Agrupar palabras en frases con sentido (ritmo tipo karaoke) y responder una breve pregunta de comprensión.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div class="flex items-center gap-1 text-amber-500 text-sm" id="stars-level-3">
+                ⭐⭐⭐
+              </div>
+              <span class="bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl group-hover:bg-amber-700 transition flex items-center gap-1">
+                Jugar <span>➔</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- NIVEL 4 -->
+          <div class="bg-white rounded-3xl p-5 border-2 border-indigo-200 hover:border-indigo-400 shadow-md hover:shadow-lg transition flex flex-col justify-between group cursor-pointer relative overflow-hidden" onclick="window.gameApp.startLevel(4)">
+            <div class="absolute top-0 right-0 bg-indigo-500 text-white font-bold text-xs px-3 py-1 rounded-bl-2xl">
+              Nivel 4
+            </div>
+            <div>
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  🐧
+                </div>
+                <div>
+                  <h4 class="font-kids font-bold text-lg text-slate-800">Rally Antártico</h4>
+                  <p class="text-xs text-indigo-700 font-semibold">Zona Austral: Magallanes</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                <strong>Objetivo:</strong> Gran desafío integrado de fluidez y velocidad lectora completando palabras en micro-historias chilenas.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div class="flex items-center gap-1 text-amber-500 text-sm" id="stars-level-4">
+                ⭐⭐⭐
+              </div>
+              <span class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl group-hover:bg-indigo-700 transition flex items-center gap-1">
+                Jugar <span>➔</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VISTA 2: PANTALLA DE JUEGO ================= -->
+    <section id="view-gameplay" class="hidden space-y-4">
+      <!-- Barra Superior de Partida -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-between gap-3">
+        <button id="btn-exit-game" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition flex items-center gap-1">
+          <span>⬅️</span> Salir al Mapa
+        </button>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400" id="game-level-tag">NIVEL 1</span>
+          <span class="font-kids font-bold text-slate-800 text-sm md:text-base" id="game-level-name">El Puente de Sílabas</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="w-24 bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+            <div id="game-progress-bar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+          </div>
+          <span class="text-xs font-bold text-slate-500" id="game-round-counter">1/5</span>
+        </div>
+      </div>
+
+      <!-- ÁREA INTERACTIVA DINÁMICA -->
+      <div id="game-interactive-container" class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border-2 border-amber-200 min-h-[380px] flex flex-col justify-between relative overflow-hidden">
+        <!-- Contenido inyectado por JS según el nivel -->
+      </div>
+    </section>
+
+    <!-- ================= VISTA 3: RESUMEN DE NIVEL COMPLETADO ================= -->
+    <section id="view-summary" class="hidden text-center space-y-6">
+      <div class="bg-white rounded-3xl p-8 shadow-xl border-4 border-amber-300 max-w-lg mx-auto space-y-5">
+        <div class="w-24 h-24 bg-amber-100 rounded-full mx-auto flex items-center justify-center text-5xl shadow-inner border-4 border-amber-400 animate-gentle">
+          🏆
+        </div>
+
+        <div class="space-y-1">
+          <span class="text-xs font-bold text-amber-600 uppercase tracking-widest">¡Excelente Trabajo!</span>
+          <h2 class="font-kids font-bold text-3xl text-slate-800">¡Misión Cumplida!</h2>
+          <p class="text-slate-600 text-sm" id="summary-feedback-text">Has entrenado tu cerebro para leer de corrido sin detenerte en las sílabas.</p>
+        </div>
+
+        <!-- Estrellas Obtenidas -->
+        <div class="flex justify-center items-center gap-2 text-4xl" id="summary-stars-container">
+          <span class="animate-bounce" style="animation-delay: 0.1s">⭐</span>
+          <span class="animate-bounce" style="animation-delay: 0.25s">⭐</span>
+          <span class="animate-bounce" style="animation-delay: 0.4s">⭐</span>
+        </div>
+
+        <!-- Estadísticas amigables -->
+        <div class="grid grid-cols-2 gap-3 bg-amber-50/70 p-4 rounded-2xl border border-amber-200">
+          <div>
+            <span class="text-xs text-slate-500 block font-semibold">Palabras Leídas</span>
+            <span class="font-kids font-bold text-2xl text-amber-800" id="summary-words-count">5</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block font-semibold">Aciertos</span>
+            <span class="font-kids font-bold text-2xl text-emerald-600" id="summary-accuracy">100%</span>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button id="btn-replay-level" class="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">
+            🔄 Repetir Nivel
+          </button>
+          <button id="btn-next-level" class="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md hover:shadow-lg transition">
+            Siguiente Misión ➔
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER / CRÉDITOS ================= -->
+  <footer class="bg-white/80 border-t border-slate-200 py-3 text-center text-xs text-slate-500 px-4">
+    <p>Desarrollado para apoyar la fluidez lectora en <strong>3° Básico (Currículum Nacional de Chile)</strong>. ¡La lectura es una aventura!</p>
+  </footer>
+
+  <!-- ================= MODAL: ARMARIO DE PABLITO & TROFEOS ================= -->
+  <div id="modal-trophies" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-purple-200 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-kids font-bold text-xl text-purple-900 flex items-center gap-2">
+          <span>🧢</span> Armario de Pablito y Trofeos
+        </h3>
+        <button id="btn-close-trophies" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Vista previa Mascota -->
+      <div class="bg-gradient-to-b from-purple-100 to-amber-50 rounded-2xl p-5 text-center">
+        <div class="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-md relative border-2 border-purple-200">
+          <span>🦌</span>
+          <span id="preview-accessory" class="absolute -top-3 -right-2 text-3xl">🧢</span>
+        </div>
+        <p class="font-kids font-bold text-slate-800 text-base mt-2">Pablito el Pudú</p>
+        <p class="text-xs text-slate-500">Gana estrellas para equipar nuevos accesorios</p>
+      </div>
+
+      <!-- Accesorios para equipar -->
+      <div>
+        <h4 class="font-kids font-bold text-sm text-slate-700 mb-2">Accesorios Disponibles:</h4>
+        <div class="grid grid-cols-4 gap-2" id="accessories-grid">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
+
+      <!-- Medallas Desbloqueadas -->
+      <div>
+        <h4 class="font-kids font-bold text-sm text-slate-700 mb-2">Medallas de Lectura:</h4>
+        <div class="space-y-2" id="badges-list">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
+
+      <!-- Botón Generar Diploma Imprimible -->
+      <div class="pt-2">
+        <button id="btn-open-diploma" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow transition flex items-center justify-center gap-2 text-sm">
+          <span>📜</span> Ver y Descargar Diploma de Lector
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: GUÍA PARA PADRES Y DOCENTES ================= -->
+  <div id="modal-guide" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border-4 border-emerald-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-kids font-bold text-xl text-emerald-900 flex items-center gap-2">
+          <span>💡</span> Guía Pedagógica: ¿Cómo superar la lectura silábica?
+        </h3>
+        <button id="btn-close-guide" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-4 text-sm text-slate-700 leading-relaxed">
+        <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+          <h4 class="font-bold text-emerald-900 mb-1">📌 ¿Qué significa que un alumno de 3° básico lea silábicamente?</h4>
+          <p>
+            El estudiante ya domina la <em>decodificación fonológica</em> (sabe qué sonido corresponde a cada letra), pero aún no ha automatizado la <strong>ruta léxica</strong> (reconocimiento visual directo de la palabra completa). Al pronunciar sílaba por sílaba (ej. <em>"co... pi... hue..."</em>), se agota su memoria de trabajo, lo que dificulta comprender el texto global y genera frustración o desinterés.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="font-bold text-slate-800">🎯 4 Técnicas respaldadas por la neurociencia y el MINEDUC:</h4>
+          
+          <div class="flex gap-3 items-start">
+            <span class="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 font-bold flex items-center justify-center flex-shrink-0 text-xs">1</span>
+            <div>
+              <strong class="text-slate-800">Fusión silábica rápida (Nivel 1 del juego):</strong>
+              <p class="text-xs text-slate-600">Entrenar el deslizamiento rápido de los ojos y la voz entre sílabas contiguas sin hacer pausas respiratorias intermedias.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-start">
+            <span class="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center flex-shrink-0 text-xs">2</span>
+            <div>
+              <strong class="text-slate-800">Taquistoscopio / Palabras Flash (Nivel 2 del juego):</strong>
+              <p class="text-xs text-slate-600">Mostrar palabras frecuentes por menos de 1 segundo obliga al cerebro a "fotografiar" la palabra completa, desactivando el deletreo interno.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-start">
+            <span class="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 font-bold flex items-center justify-center flex-shrink-0 text-xs">3</span>
+            <div>
+              <strong class="text-slate-800">Lectura por unidades de sentido / Sintagmas (Nivel 3 del juego):</strong>
+              <p class="text-xs text-slate-600">Modelar la lectura en "golpes de voz" ([El pudú café] [camina por el bosque]) en lugar de palabra por palabra. El juego incluye voz modelo.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-start">
+            <span class="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 font-bold flex items-center justify-center flex-shrink-0 text-xs">4</span>
+            <div>
+              <strong class="text-slate-800">Lectura compartida en eco y elogio del progreso:</strong>
+              <p class="text-xs text-slate-600">El adulto lee una frase con entonación natural y el niño la repite de inmediato. Nunca castigar la lentitud: celebrar cada palabra reconocida de forma fluida.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-xs text-amber-900">
+          <strong>⏱️ Meta esperada en 3° básico en Chile:</strong> Hacia fines de 3° básico se busca una velocidad de entre <strong>85 y 110 palabras por minuto</strong> con entonación natural (prosodia). No te obsesiones con el cronómetro: ¡la entonación y la comprensión son lo principal!
+        </div>
+      </div>
+
+      <div class="pt-2 text-right">
+        <button id="btn-close-guide-2" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition text-sm">
+          ¡Entendido, a practicar!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: AJUSTES ================= -->
+  <div id="modal-settings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-4 border-slate-200 space-y-5">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-kids font-bold text-xl text-slate-800 flex items-center gap-2">
+          <span>⚙️</span> Ajustes de Lectura
+        </h3>
+        <button id="btn-close-settings" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Alternar colores en sílabas -->
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl">
+          <div>
+            <label class="font-bold text-sm text-slate-800 block">Colores en Sílabas</label>
+            <span class="text-xs text-slate-500">Alterna colores para distinguir sílabas</span>
+          </div>
+          <input type="checkbox" id="setting-syllable-colors" checked class="w-5 h-5 text-amber-500 rounded focus:ring-amber-400">
+        </div>
+
+        <!-- Velocidad de lectura guiada / voz -->
+        <div class="space-y-1 bg-slate-50 p-3 rounded-2xl">
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-sm text-slate-800">Velocidad del Juego / Flash</label>
+            <span class="text-xs font-bold text-amber-600" id="setting-speed-label">Normal (1.2s)</span>
+          </div>
+          <input type="range" id="setting-speed-slider" min="1" max="3" value="2" class="w-full accent-amber-500">
+          <div class="flex justify-between text-[10px] text-slate-400 font-bold px-1">
+            <span>Pausado</span>
+            <span>Normal</span>
+            <span>Rápido</span>
+          </div>
+        </div>
+
+        <!-- Voz del navegador -->
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl">
+          <div>
+            <label class="font-bold text-sm text-slate-800 block">Voz de Lectura (Audio)</label>
+            <span class="text-xs text-slate-500">Lee palabras en voz alta para modelar</span>
+          </div>
+          <input type="checkbox" id="setting-voice-enabled" checked class="w-5 h-5 text-amber-500 rounded focus:ring-amber-400">
+        </div>
+
+        <!-- Reiniciar Progreso -->
+        <div class="pt-2 border-t text-center">
+          <button id="btn-reset-progress" class="text-xs text-red-500 hover:text-red-700 font-bold underline">
+            Reiniciar progreso de estrellas
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2 text-right">
+        <button id="btn-save-settings" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow">
+          Guardar y Continuar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: DIPLOMA IMPRIMIBLE ================= -->
+  <div id="modal-diploma" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-amber-300 space-y-4 max-h-[95vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-kids font-bold text-lg text-amber-900">📜 Certificado Oficial de Lector</h3>
+        <button id="btn-close-diploma" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Nombre del alumno input -->
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-700">Nombre del Alumno/a:</label>
+        <input type="text" id="diploma-student-name-input" value="Lector Campeón" placeholder="Escribe el nombre aquí..." class="flex-grow px-3 py-1.5 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400">
+      </div>
+
+      <!-- ZONA DE DIPLOMA IMPRIMIBLE -->
+      <div id="diploma-printable" class="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-8 border-double border-amber-400 p-6 rounded-2xl text-center space-y-4 shadow-md relative">
+        <div class="flex justify-between items-center text-3xl opacity-75">
+          <span>🇨🇱</span>
+          <span class="text-xs font-bold uppercase tracking-widest text-amber-700">Misión de Fluidez Lectora 3° Básico</span>
+          <span>⭐</span>
+        </div>
+
+        <div class="space-y-1">
+          <h2 class="font-kids font-bold text-2xl md:text-3xl text-amber-800">DIPLOMA DE HONOR</h2>
+          <p class="text-xs text-slate-500 font-semibold">Se otorga con orgullo el presente reconocimiento a:</p>
+          <div class="py-2 border-b-2 border-amber-400 max-w-sm mx-auto">
+            <span class="font-kids font-bold text-2xl text-slate-800" id="diploma-student-name">Lector Campeón</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+          Por su destacada dedicación, valentía y entusiasmo al superar la lectura silábica, leyendo palabras completas y oraciones con gran fluidez junto a <strong>Pablito el Pudú</strong>.
+        </p>
+
+        <div class="flex justify-around items-center pt-3 border-t border-amber-200">
+          <div>
+            <span class="text-3xl">🦌</span>
+            <span class="block text-[10px] text-slate-500 font-bold">Pablito el Pudú</span>
+          </div>
+          <div class="text-center">
+            <span class="font-kids font-bold text-lg text-amber-600" id="diploma-stars-badge">⭐ 12 Estrellas</span>
+            <span class="block text-[10px] text-slate-500 font-bold">Nivel Alcanzado</span>
+          </div>
+          <div>
+            <span class="text-3xl">🏅</span>
+            <span class="block text-[10px] text-slate-500 font-bold">Lector de Oro</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones de Diploma -->
+      <div class="flex gap-3 pt-2">
+        <button id="btn-print-diploma" class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow transition flex items-center justify-center gap-2 text-sm">
+          <span>🖨️</span> Imprimir / Guardar en PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT DEL JUEGO ================= -->
+  <script>
+    (function () {
+      // Audio sintetizado con Web Audio API (100% independiente de archivos externos)
+      class SoundFx {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+
+        init() {
+          if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+              this.ctx = new AudioContext();
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+
+        playTone(freq, type, duration, delay = 0) {
+          if (!this.enabled) return;
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(this.ctx.currentTime + delay);
+            osc.stop(this.ctx.currentTime + delay + duration);
+          } catch (e) {
+            console.error('Audio error:', e);
+          }
+        }
+
+        correct() {
+          // Melodía triunfal alegre C5, E5, G5, C6
+          this.playTone(523.25, 'triangle', 0.12, 0);
+          this.playTone(659.25, 'triangle', 0.12, 0.08);
+          this.playTone(783.99, 'triangle', 0.15, 0.16);
+          this.playTone(1046.50, 'triangle', 0.25, 0.25);
+        }
+
+        pop() {
+          this.playTone(440, 'sine', 0.08, 0);
+        }
+
+        tryAgain() {
+          // Tono suave no punitivo
+          this.playTone(280, 'sine', 0.15, 0);
+          this.playTone(240, 'sine', 0.2, 0.12);
+        }
+
+        fanfare() {
+          const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+          notes.forEach((f, i) => {
+            this.playTone(f, 'triangle', 0.2, i * 0.1);
+          });
+        }
+      }
+
+      const sfx = new SoundFx();
+
+      // Voz sintetizada con Web Speech API
+      function speakText(text) {
+        if (!window.gameApp.settings.voiceEnabled) return;
+        if (!('speechSynthesis' in window)) return;
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-CL'; // Español de Chile preferido
+        utterance.rate = 0.9; // Ligera cadencia para mayor claridad en niños
+        utterance.pitch = 1.05;
+
+        // Intentar buscar una voz en español
+        const voices = window.speechSynthesis.getVoices();
+        const esVoice = voices.find(v => v.lang.startsWith('es'));
+        if (esVoice) utterance.voice = esVoice;
+
+        window.speechSynthesis.speak(utterance);
+      }
+
+      // Banco de Palabras y Frases adaptadas al Currículum Chileno (3° Básico)
+      const GAME_DATA = {
+        level1: [
+          // Nivel 1: Fusión Silábica (de 2 a 3 sílabas con vocabulario chileno y cotidiano)
+          { syllables: ['PU', 'DÚ'], word: 'PUDÚ', emoji: '🦌', distractors: ['PATO', 'PERRO'] },
+          { syllables: ['VO', 'LAN', 'TÍN'], word: 'VOLANTÍN', emoji: '🪁', distractors: ['VENTANA', 'VESTIDO'] },
+          { syllables: ['CO', 'PI', 'HUE'], word: 'COPIHUE', emoji: '🌺', distractors: ['CONEJO', 'CORAZÓN'] },
+          { syllables: ['CÓN', 'DOR'], word: 'CÓNDOR', emoji: '🦅', distractors: ['CANDADO', 'CORDERO'] },
+          { syllables: ['ES', 'TRE', 'LLA'], word: 'ESTRELLA', emoji: '⭐', distractors: ['ESCUELA', 'ESPADA'] },
+          { syllables: ['GUI', 'TA', 'RRA'], word: 'GUITARRA', emoji: '🎸', distractors: ['GUSANO', 'GALLINA'] },
+          { syllables: ['VOL', 'CÁN'], word: 'VOLCÁN', emoji: '🌋', distractors: ['VAGÓN', 'VALLE'] },
+          { syllables: ['BOS', 'QUE'], word: 'BOSQUE', emoji: '🌲', distractors: ['BOTE', 'BOMBA'] }
+        ],
+        level2: [
+          // Nivel 2: Taquistoscopio / Flash (Palabras globales para desactivar silabeo)
+          { word: 'CORDILLERA', emoji: '🏔️', distractors: ['COSTANERA', 'CORDELERÍA'] },
+          { word: 'PINGÜINO', emoji: '🐧', distractors: ['PINTURA', 'PINCEL'] },
+          { word: 'DESIERTO', emoji: '🏜️', distractors: ['DESPIERTO', 'DESEO'] },
+          { word: 'EMPANADA', emoji: '🥟', distractors: ['ENSALADA', 'ESCALERA'] },
+          { word: 'HUASO', emoji: '🤠', distractors: ['HUESO', 'HUMO'] },
+          { word: 'BANDERA', emoji: '🇨🇱', distractors: ['BAÑERA', 'BARRERA'] },
+          { word: 'ARACARIA', emoji: '🌲', distractors: ['ARAÑA', 'ARENA'] },
+          { word: 'MARIPOSA', emoji: '🦋', distractors: ['MARINERO', 'MALETA'] }
+        ],
+        level3: [
+          // Nivel 3: El Tren de Frases (Lectura en sintagmas y ritmo prosódico)
+          {
+            chunks: ['El pequeño pudú', 'corre feliz', 'en el bosque verde.'],
+            fullText: 'El pequeño pudú corre feliz en el bosque verde.',
+            question: '¿Quién corre feliz en el bosque?',
+            options: ['El pequeño pudú', 'El gato blanco', 'El caballo veloz'],
+            correctIdx: 0,
+            emoji: '🦌'
+          },
+          {
+            chunks: ['Los volantines de colores', 'vuelan muy alto', 'en la playa de Valparaíso.'],
+            fullText: 'Los volantines de colores vuelan muy alto en la playa de Valparaíso.',
+            question: '¿Qué vuela muy alto en el cielo?',
+            options: ['Los volantines', 'Los globos negros', 'Los aviones viejos'],
+            correctIdx: 0,
+            emoji: '🪁'
+          },
+          {
+            chunks: ['El gran cóndor andino', 'planea con fuerza', 'sobre las montañas nevadas.'],
+            fullText: 'El gran cóndor andino planea con fuerza sobre las montañas nevadas.',
+            question: '¿Por dónde planea el gran cóndor?',
+            options: ['Sobre las montañas', 'Bajo el agua fría', 'En la cueva oscura'],
+            correctIdx: 0,
+            emoji: '🦅'
+          },
+          {
+            chunks: ['En el sur de Chile', 'cae una lluvia fresca', 'sobre los techos de madera.'],
+            fullText: 'En el sur de Chile cae una lluvia fresca sobre los techos de madera.',
+            question: '¿Qué cae en el sur de Chile?',
+            options: ['Una lluvia fresca', 'Mucha arena tibia', 'Hojas de palmera'],
+            correctIdx: 0,
+            emoji: '🌧️'
+          }
+        ],
+        level4: [
+          // Nivel 4: Rally Antártico (Completación rápida de oraciones con contexto)
+          {
+            sentence: 'El pingüino salta al agua fría de la ______ austral.',
+            missingWord: 'ANTÁRTICA',
+            options: ['ANTÁRTICA', 'VENTANA', 'CAMPANA'],
+            emoji: '🐧'
+          },
+          {
+            sentence: 'Mi familia come ricas ______ calientes en el campo.',
+            missingWord: 'EMPANADAS',
+            options: ['EMPANADAS', 'ESPATULAS', 'ESPONJAS'],
+            emoji: '🥟'
+          },
+          {
+            sentence: 'La hermosa flor roja de Chile se llama ______.',
+            missingWord: 'COPIHUE',
+            options: ['COPIHUE', 'COCHAYUYO', 'COLIFLOR'],
+            emoji: '🌺'
+          },
+          {
+            sentence: 'En la noche despejada miro las ______ brillantes.',
+            missingWord: 'ESTRELLAS',
+            options: ['ESTRELLAS', 'ESCALERAS', 'ESPUMAS'],
+            emoji: '✨'
+          }
+        ]
+      };
+
+      const ACCESSORIES = [
+        { id: 'cap', emoji: '🧢', name: 'Gorrita Azul', starsReq: 0 },
+        { id: 'wool', emoji: '🧶', name: 'Gorro Chilote', starsReq: 3 },
+        { id: 'glasses', emoji: '🕶️', name: 'Gafas de Sol', starsReq: 6 },
+        { id: 'flower', emoji: '🌺', name: 'Copihue Mágico', starsReq: 9 },
+        { id: 'crown', emoji: '👑', name: 'Corona de Oro', starsReq: 12 },
+        { id: 'cape', emoji: '🦸', name: 'Capa Veloz', starsReq: 15 }
+      ];
+
+      const BADGES = [
+        { id: 'b1', name: 'Explorador del Norte', desc: 'Completó el Puente de Sílabas', icon: '🌵', level: 1 },
+        { id: 'b2', name: 'Ojo de Cóndor', desc: 'Reconoció palabras a velocidad flash', icon: '🦅', level: 2 },
+        { id: 'b3', name: 'Maquinista Lector', desc: 'Leyó frases completas con ritmo', icon: '🚂', level: 3 },
+        { id: 'b4', name: 'Campeón Austral', desc: 'Superó el desafío de la Antártica', icon: '🐧', level: 4 }
+      ];
+
+      // Aplicación Principal
+      class ReadingGameApp {
+        constructor() {
+          this.state = {
+            stars: 0,
+            levelStars: { 1: 0, 2: 0, 3: 0, 4: 0 },
+            equippedAccessory: '🧢',
+            studentName: 'Lector Campeón'
+          };
+
+          this.settings = {
+            syllableColors: true,
+            speedMode: 2, // 1: lento (1.8s), 2: normal (1.2s), 3: rápido (0.7s)
+            voiceEnabled: true,
+            soundMuted: false
+          };
+
+          this.currentLevel = 1;
+          this.currentRound = 0;
+          this.maxRounds = 5;
+          this.roundData = [];
+          this.correctAnswersCount = 0;
+
+          this.loadState();
+          this.initDomListeners();
+          this.updateUi();
+        }
+
+        loadState() {
+          try {
+            const saved = localStorage.getItem('aventura_lectora_pudu_state');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              this.state = Object.assign(this.state, parsed);
+            }
+          } catch (e) {
+            console.warn('LocalStorage error:', e);
+          }
+        }
+
+        saveState() {
+          try {
+            localStorage.setItem('aventura_lectora_pudu_state', JSON.stringify(this.state));
+          } catch (e) {
+            console.warn('LocalStorage save error:', e);
+          }
+          this.updateUi();
+        }
+
+        updateUi() {
+          // Estrellas totales
+          const starsEl = document.getElementById('total-stars-count');
+          if (starsEl) starsEl.textContent = this.state.stars;
+
+          // Estrellas en mapa de niveles
+          for (let i = 1; i <= 4; i++) {
+            const el = document.getElementById(`stars-level-${i}`);
+            if (el) {
+              const stars = this.state.levelStars[i] || 0;
+              el.textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+            }
+          }
+
+          // Mascota accesorio
+          const accEl = document.getElementById('avatar-accessory');
+          const prevAccEl = document.getElementById('preview-accessory');
+          if (accEl) accEl.textContent = this.state.equippedAccessory;
+          if (prevAccEl) prevAccEl.textContent = this.state.equippedAccessory;
+
+          // Diploma
+          const diplStars = document.getElementById('diploma-stars-badge');
+          if (diplStars) diplStars.textContent = `⭐ ${this.state.stars} Estrellas`;
+          const diplName = document.getElementById('diploma-student-name');
+          if (diplName) diplName.textContent = this.state.studentName;
+        }
+
+        initDomListeners() {
+          // Navegación Básica
+          const btnHome = document.getElementById('btn-home-logo');
+          if (btnHome) btnHome.addEventListener('click', () => this.showView('map'));
+
+          const btnExit = document.getElementById('btn-exit-game');
+          if (btnExit) btnExit.addEventListener('click', () => this.showView('map'));
+
+          const btnReplay = document.getElementById('btn-replay-level');
+          if (btnReplay) btnReplay.addEventListener('click', () => this.startLevel(this.currentLevel));
+
+          const btnNext = document.getElementById('btn-next-level');
+          if (btnNext) btnNext.addEventListener('click', () => {
+            const next = this.currentLevel < 4 ? this.currentLevel + 1 : 1;
+            this.startLevel(next);
+          });
+
+          // Sonido Toggle
+          const btnSound = document.getElementById('btn-toggle-sound');
+          if (btnSound) {
+            btnSound.addEventListener('click', () => {
+              sfx.init();
+              this.settings.soundMuted = !this.settings.soundMuted;
+              sfx.enabled = !this.settings.soundMuted;
+              document.getElementById('sound-icon').textContent = this.settings.soundMuted ? '🔇' : '🔊';
+            });
+          }
+
+          // Modal Trofeos / Armario
+          const btnTrophies = document.getElementById('btn-open-trophies');
+          const btnChangeAcc = document.getElementById('btn-change-accessory');
+          const modalTrophies = document.getElementById('modal-trophies');
+          const btnCloseTrophies = document.getElementById('btn-close-trophies');
+
+          const openTrophies = () => {
+            sfx.pop();
+            this.renderAccessoriesGrid();
+            this.renderBadgesList();
+            modalTrophies.classList.remove('hidden');
+          };
+
+          if (btnTrophies) btnTrophies.addEventListener('click', openTrophies);
+          if (btnChangeAcc) btnChangeAcc.addEventListener('click', openTrophies);
+          if (btnCloseTrophies) btnCloseTrophies.addEventListener('click', () => modalTrophies.classList.add('hidden'));
+
+          // Modal Guía Padres
+          const btnGuide = document.getElementById('btn-open-guide');
+          const modalGuide = document.getElementById('modal-guide');
+          const btnCloseGuide = document.getElementById('btn-close-guide');
+          const btnCloseGuide2 = document.getElementById('btn-close-guide-2');
+
+          if (btnGuide) btnGuide.addEventListener('click', () => {
+            sfx.pop();
+            modalGuide.classList.remove('hidden');
+          });
+          if (btnCloseGuide) btnCloseGuide.addEventListener('click', () => modalGuide.classList.add('hidden'));
+          if (btnCloseGuide2) btnCloseGuide2.addEventListener('click', () => modalGuide.classList.add('hidden'));
+
+          // Modal Ajustes
+          const btnSettings = document.getElementById('btn-open-settings');
+          const modalSettings = document.getElementById('modal-settings');
+          const btnCloseSettings = document.getElementById('btn-close-settings');
+          const btnSaveSettings = document.getElementById('btn-save-settings');
+          const speedSlider = document.getElementById('setting-speed-slider');
+          const speedLabel = document.getElementById('setting-speed-label');
+          const chkSyllables = document.getElementById('setting-syllable-colors');
+          const chkVoice = document.getElementById('setting-voice-enabled');
+
+          if (btnSettings) {
+            btnSettings.addEventListener('click', () => {
+              sfx.pop();
+              modalSettings.classList.remove('hidden');
+            });
+          }
+          if (btnCloseSettings) btnCloseSettings.addEventListener('click', () => modalSettings.classList.add('hidden'));
+
+          if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+              const val = parseInt(e.target.value);
+              this.settings.speedMode = val;
+              const texts = { 1: 'Pausado (1.8s)', 2: 'Normal (1.2s)', 3: 'Rápido (0.7s)' };
+              speedLabel.textContent = texts[val];
+            });
+          }
+
+          if (btnSaveSettings) {
+            btnSaveSettings.addEventListener('click', () => {
+              sfx.pop();
+              this.settings.syllableColors = chkSyllables.checked;
+              this.settings.voiceEnabled = chkVoice.checked;
+              modalSettings.classList.add('hidden');
+            });
+          }
+
+          const btnReset = document.getElementById('btn-reset-progress');
+          let confirmReset = false;
+          if (btnReset) {
+            btnReset.addEventListener('click', () => {
+              if (!confirmReset) {
+                confirmReset = true;
+                btnReset.textContent = '⚠️ ¿Seguro? Haz clic otra vez para confirmar';
+                btnReset.classList.add('text-amber-600');
+                setTimeout(() => {
+                  confirmReset = false;
+                  btnReset.textContent = 'Reiniciar progreso de estrellas';
+                  btnReset.classList.remove('text-amber-600');
+                }, 4000);
+              } else {
+                this.state = {
+                  stars: 0,
+                  levelStars: { 1: 0, 2: 0, 3: 0, 4: 0 },
+                  equippedAccessory: '🧢',
+                  studentName: 'Lector Campeón'
+                };
+                this.saveState();
+                confirmReset = false;
+                btnReset.textContent = '¡Progreso reiniciado!';
+                setTimeout(() => {
+                  btnReset.textContent = 'Reiniciar progreso de estrellas';
+                  modalSettings.classList.add('hidden');
+                }, 800);
+              }
+            });
+          }
+
+          // Modal Diploma
+          const btnOpenDiploma = document.getElementById('btn-open-diploma');
+          const modalDiploma = document.getElementById('modal-diploma');
+          const btnCloseDiploma = document.getElementById('btn-close-diploma');
+          const nameInput = document.getElementById('diploma-student-name-input');
+          const btnPrintDiploma = document.getElementById('btn-print-diploma');
+
+          if (btnOpenDiploma) {
+            btnOpenDiploma.addEventListener('click', () => {
+              sfx.fanfare();
+              modalTrophies.classList.add('hidden');
+              modalDiploma.classList.remove('hidden');
+            });
+          }
+          if (btnCloseDiploma) btnCloseDiploma.addEventListener('click', () => modalDiploma.classList.add('hidden'));
+
+          if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+              const name = e.target.value.trim() || 'Lector Campeón';
+              this.state.studentName = name;
+              document.getElementById('diploma-student-name').textContent = name;
+              this.saveState();
+            });
+          }
+
+          if (btnPrintDiploma) {
+            btnPrintDiploma.addEventListener('click', () => {
+              window.print();
+            });
+          }
+        }
+
+        renderAccessoriesGrid() {
+          const container = document.getElementById('accessories-grid');
+          if (!container) return;
+          container.innerHTML = '';
+
+          ACCESSORIES.forEach(acc => {
+            const isUnlocked = this.state.stars >= acc.starsReq;
+            const isEquipped = this.state.equippedAccessory === acc.emoji;
+
+            const btn = document.createElement('button');
+            btn.className = `p-2 rounded-2xl border-2 flex flex-col items-center justify-center transition relative ${
+              isEquipped 
+                ? 'border-purple-500 bg-purple-100 shadow-md ring-2 ring-purple-300' 
+                : isUnlocked 
+                  ? 'border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-300' 
+                  : 'border-slate-200 bg-slate-100 opacity-50 cursor-not-allowed'
+            }`;
+
+            btn.innerHTML = `
+              <span class="text-3xl">${acc.emoji}</span>
+              <span class="text-[10px] font-bold text-slate-700 mt-1 truncate w-full text-center">${acc.name}</span>
+              ${!isUnlocked ? `<span class="text-[9px] bg-slate-800 text-white font-bold px-1 rounded absolute -top-1.5 -right-1">⭐ ${acc.starsReq}</span>` : ''}
+              ${isEquipped ? `<span class="text-[9px] bg-purple-600 text-white font-bold px-1.5 rounded-full absolute -top-1.5 -right-1">Listo</span>` : ''}
+            `;
+
+            if (isUnlocked) {
+              btn.addEventListener('click', () => {
+                sfx.pop();
+                this.state.equippedAccessory = acc.emoji;
+                this.saveState();
+                this.renderAccessoriesGrid();
+              });
+            }
+            container.appendChild(btn);
+          });
+        }
+
+        renderBadgesList() {
+          const container = document.getElementById('badges-list');
+          if (!container) return;
+          container.innerHTML = '';
+
+          BADGES.forEach(badge => {
+            const isEarned = (this.state.levelStars[badge.level] || 0) > 0;
+            const card = document.createElement('div');
+            card.className = `p-3 rounded-2xl border flex items-center gap-3 ${
+              isEarned 
+                ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm' 
+                : 'bg-slate-50 border-slate-200 opacity-60 text-slate-400'
+            }`;
+            card.innerHTML = `
+              <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm border border-amber-200">
+                ${badge.icon}
+              </div>
+              <div class="flex-grow">
+                <h5 class="font-kids font-bold text-sm ${isEarned ? 'text-amber-900' : 'text-slate-600'}">${badge.name}</h5>
+                <p class="text-xs text-slate-500">${badge.desc}</p>
+              </div>
+              <div>
+                ${isEarned ? '<span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">¡Logrado!</span>' : '<span class="text-xs text-slate-400 font-bold">Bloqueado</span>'}
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        }
+
+        showView(viewName) {
+          document.getElementById('view-map').classList.add('hidden');
+          document.getElementById('view-gameplay').classList.add('hidden');
+          document.getElementById('view-summary').classList.add('hidden');
+
+          if (viewName === 'map') {
+            document.getElementById('view-map').classList.remove('hidden');
+            this.updateUi();
+          } else if (viewName === 'gameplay') {
+            document.getElementById('view-gameplay').classList.remove('hidden');
+          } else if (viewName === 'summary') {
+            document.getElementById('view-summary').classList.remove('hidden');
+          }
+        }
+
+        startLevel(levelNumber) {
+          sfx.pop();
+          this.currentLevel = levelNumber;
+          this.currentRound = 0;
+          this.correctAnswersCount = 0;
+
+          // Tomar preguntas y mezclar
+          const pool = [...GAME_DATA[`level${levelNumber}`]];
+          pool.sort(() => Math.random() - 0.5);
+          this.roundData = pool.slice(0, 5); // 5 rondas por sesión
+          this.maxRounds = this.roundData.length;
+
+          const levelTitles = {
+            1: { tag: 'NIVEL 1', title: 'El Puente de Sílabas (Fusión Silábica)' },
+            2: { tag: 'NIVEL 2', title: 'Ojo Relámpago (Lectura Visual Global)' },
+            3: { tag: 'NIVEL 3', title: 'El Tren de las Frases (Fluidez y Ritmo)' },
+            4: { tag: 'NIVEL 4', title: 'Rally Antártico (Desafío Integrado)' }
+          };
+
+          document.getElementById('game-level-tag').textContent = levelTitles[levelNumber].tag;
+          document.getElementById('game-level-name').textContent = levelTitles[levelNumber].title;
+
+          this.showView('gameplay');
+          this.loadNextRound();
+        }
+
+        updateProgressBar() {
+          const progress = (this.currentRound / this.maxRounds) * 100;
+          document.getElementById('game-progress-bar').style.width = `${progress}%`;
+          document.getElementById('game-round-counter').textContent = `${this.currentRound + 1}/${this.maxRounds}`;
+        }
+
+        loadNextRound() {
+          if (this.currentRound >= this.maxRounds) {
+            this.finishLevel();
+            return;
+          }
+
+          this.updateProgressBar();
+          const item = this.roundData[this.currentRound];
+          const container = document.getElementById('game-interactive-container');
+
+          if (this.currentLevel === 1) {
+            this.renderLevel1Round(container, item);
+          } else if (this.currentLevel === 2) {
+            this.renderLevel2Round(container, item);
+          } else if (this.currentLevel === 3) {
+            this.renderLevel3Round(container, item);
+          } else if (this.currentLevel === 4) {
+            this.renderLevel4Round(container, item);
+          }
+        }
+
+        // ================= NIVEL 1: EL PUENTE DE SÍLABAS =================
+        renderLevel1Round(container, item) {
+          const syllablesHtml = item.syllables.map((syl, idx) => {
+            const colorClass = this.settings.syllableColors ? `syllable-${idx % 4}` : 'text-slate-800';
+            return `
+              <div class="px-5 py-3 md:px-8 md:py-4 bg-sky-50 border-4 border-sky-300 rounded-3xl font-kids font-bold text-3xl md:text-5xl shadow-md ${colorClass} animate-syllable" style="animation-delay: ${idx * 0.15}s">
+                ${syl}
+              </div>
+            `;
+          }).join('<span class="text-3xl font-bold text-amber-400 animate-pulse">+</span>');
+
+          // Opciones de palabra completa
+          const options = [item.word, ...item.distractors].sort(() => Math.random() - 0.5);
+
+          container.innerHTML = `
+            <div class="text-center space-y-4">
+              <span class="inline-block bg-sky-100 text-sky-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                Desliza y Une las Sílabas en un solo golpe
+              </span>
+
+              <!-- Fusión visual de Sílabas -->
+              <div class="flex items-center justify-center gap-3 py-6" id="syllables-track">
+                ${syllablesHtml}
+              </div>
+
+              <!-- Botón Escuchar Pronunciación Fluida -->
+              <button id="btn-speak-word" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-full font-bold text-xs shadow-sm transition">
+                <span>🔊</span> Escuchar cómo suena de corrido
+              </button>
+            </div>
+
+            <!-- Pregunta de Elección -->
+            <div class="space-y-3 pt-6 border-t border-slate-100">
+              <p class="text-center font-bold text-slate-600 text-sm">
+                ¿Qué palabra formaste al unir las sílabas?
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="level1-options">
+                ${options.map(opt => `
+                  <button class="level1-opt-btn py-4 px-3 rounded-2xl border-2 border-slate-200 hover:border-sky-400 bg-slate-50 hover:bg-sky-50 text-slate-800 font-kids font-bold text-xl md:text-2xl shadow-sm transition flex items-center justify-center gap-2 group" data-word="${opt}">
+                    <span>${opt}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+
+          // Listener de pronunciación
+          document.getElementById('btn-speak-word').addEventListener('click', () => {
+            speakText(item.word);
+          });
+
+          // Pronunciar automáticamente una vez si el audio está activo
+          if (this.settings.voiceEnabled) {
+            setTimeout(() => speakText(item.word), 300);
+          }
+
+          // Listener de opciones
+          container.querySelectorAll('.level1-opt-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const selected = btn.getAttribute('data-word');
+              if (selected === item.word) {
+                this.handleCorrectOption(btn, item.word);
+              } else {
+                this.handleIncorrectOption(btn);
+              }
+            });
+          });
+        }
+
+        // ================= NIVEL 2: OJO RELÁMPAGO (FLASH WORDS) =================
+        renderLevel2Round(container, item) {
+          const speedDurations = { 1: 1800, 2: 1200, 3: 700 };
+          const duration = speedDurations[this.settings.speedMode] || 1200;
+
+          const options = [item.word, ...item.distractors].sort(() => Math.random() - 0.5);
+
+          container.innerHTML = `
+            <div class="text-center space-y-4 my-auto">
+              <span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                ¡Ojo de Águila! La palabra brillará un instante
+              </span>
+
+              <!-- Contenedor Flash -->
+              <div class="h-36 flex items-center justify-center">
+                <div id="flash-countdown" class="font-kids font-bold text-6xl text-emerald-600 animate-pulse">
+                  3...
+                </div>
+                <div id="flash-word-box" class="hidden px-8 py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-3xl font-kids font-bold text-3xl md:text-5xl shadow-2xl tracking-wider">
+                  ${item.word}
+                </div>
+                <div id="flash-hidden-box" class="hidden px-8 py-5 bg-slate-100 border-4 border-dashed border-slate-300 rounded-3xl text-slate-400 font-kids font-bold text-2xl flex items-center gap-2">
+                  <span>❓ ¿Qué palabra era?</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Opciones bloqueadas hasta que pase el flash -->
+            <div class="space-y-3 pt-6 border-t border-slate-100 opacity-20 pointer-events-none transition-all duration-300" id="level2-options-container">
+              <p class="text-center font-bold text-slate-600 text-sm">
+                Selecciona la palabra que viste en el relámpago:
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="level2-options">
+                ${options.map(opt => `
+                  <button class="level2-opt-btn py-4 px-3 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50 text-slate-800 font-kids font-bold text-xl md:text-2xl shadow-sm transition flex items-center justify-center gap-2" data-word="${opt}">
+                    <span>${opt}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+
+          // Cuenta regresiva 3, 2, 1 -> Flash -> Ocultar
+          const countEl = document.getElementById('flash-countdown');
+          const wordBox = document.getElementById('flash-word-box');
+          const hiddenBox = document.getElementById('flash-hidden-box');
+          const optionsContainer = document.getElementById('level2-options-container');
+
+          let counter = 3;
+          const timer = setInterval(() => {
+            counter--;
+            if (counter > 0) {
+              countEl.textContent = `${counter}...`;
+              sfx.pop();
+            } else {
+              clearInterval(timer);
+              countEl.classList.add('hidden');
+              wordBox.classList.remove('hidden');
+              sfx.correct();
+
+              // Ocultar la palabra tras el tiempo de flash establecido
+              setTimeout(() => {
+                wordBox.classList.add('hidden');
+                hiddenBox.classList.remove('hidden');
+                optionsContainer.classList.remove('opacity-20', 'pointer-events-none');
+              }, duration);
+            }
+          }, 600);
+
+          // Listeners de opciones
+          container.querySelectorAll('.level2-opt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const selected = btn.getAttribute('data-word');
+              if (selected === item.word) {
+                this.handleCorrectOption(btn, item.word);
+              } else {
+                this.handleIncorrectOption(btn);
+              }
+            });
+          });
+        }
+
+        // ================= NIVEL 3: EL TREN DE LAS FRASES =================
+        renderLevel3Round(container, item) {
+          const chunksHtml = item.chunks.map((chunk, idx) => `
+            <div class="phrase-chunk px-4 py-3 bg-amber-50 border-2 border-amber-300 rounded-2xl font-kids font-bold text-lg md:text-2xl text-slate-800 shadow-sm transition-all duration-300 transform" id="chunk-${idx}">
+              ${chunk}
+            </div>
+          `).join('');
+
+          container.innerHTML = `
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Lectura en Frases (Golpes de Voz)
+                </span>
+                <button id="btn-listen-phrase" class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl shadow transition flex items-center gap-1">
+                  <span>🗣️</span> Escuchar lectura modelo
+                </button>
+              </div>
+
+              <!-- Tren de Frases -->
+              <div class="bg-gradient-to-r from-amber-100 via-orange-50 to-amber-100 p-6 rounded-3xl border-2 border-amber-200 text-center space-y-3">
+                <div class="text-4xl animate-gentle">🚂💨</div>
+                <div class="flex flex-wrap items-center justify-center gap-2 md:gap-3 py-2">
+                  ${chunksHtml}
+                </div>
+                <button id="btn-guide-reading" class="mt-2 text-xs font-bold text-amber-700 bg-white border border-amber-300 px-4 py-1.5 rounded-full shadow-sm hover:bg-amber-50 transition">
+                  ▶ Guiar lectura con ritmo
+                </button>
+              </div>
+
+              <!-- Pregunta de Comprensión -->
+              <div class="space-y-3 pt-3 border-t border-slate-100">
+                <p class="font-kids font-bold text-slate-800 text-base md:text-lg text-center">
+                  🤔 Pregunta: ${item.question}
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  ${item.options.map((opt, idx) => `
+                    <button class="level3-opt-btn py-3 px-3 rounded-2xl border-2 border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50 text-slate-800 font-bold text-sm md:text-base shadow-sm transition text-center" data-idx="${idx}">
+                      ${opt}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+
+          const runKaraokePacing = () => {
+            item.chunks.forEach((_, i) => {
+              const el = document.getElementById(`chunk-${i}`);
+              if (!el) return;
+              el.classList.remove('bg-amber-300', 'scale-105', 'border-amber-500', 'text-amber-950');
+              el.classList.add('bg-amber-50', 'border-amber-300');
+            });
+
+            item.chunks.forEach((chunk, i) => {
+              setTimeout(() => {
+                const el = document.getElementById(`chunk-${i}`);
+                if (!el) return;
+                sfx.pop();
+                el.classList.remove('bg-amber-50', 'border-amber-300');
+                el.classList.add('bg-amber-300', 'scale-105', 'border-amber-500', 'text-amber-950');
+              }, i * 900);
+            });
+          };
+
+          document.getElementById('btn-listen-phrase').addEventListener('click', () => {
+            speakText(item.fullText);
+            runKaraokePacing();
+          });
+
+          document.getElementById('btn-guide-reading').addEventListener('click', () => {
+            runKaraokePacing();
+          });
+
+          // Iniciar animación guiada inicial
+          setTimeout(() => runKaraokePacing(), 400);
+
+          // Listeners de opciones
+          container.querySelectorAll('.level3-opt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const chosenIdx = parseInt(btn.getAttribute('data-idx'));
+              if (chosenIdx === item.correctIdx) {
+                this.handleCorrectOption(btn, item.options[item.correctIdx]);
+              } else {
+                this.handleIncorrectOption(btn);
+              }
+            });
+          });
+        }
+
+        // ================= NIVEL 4: RALLY ANTÁRTICO =================
+        renderLevel4Round(container, item) {
+          const parts = item.sentence.split('______');
+          const sentenceHtml = `
+            <span class="text-slate-800">${parts[0]}</span>
+            <span class="inline-block px-4 py-1.5 bg-indigo-100 border-2 border-dashed border-indigo-400 rounded-xl text-indigo-700 font-kids font-bold text-lg md:text-2xl animate-pulse" id="blank-target">
+              [ ... ]
+            </span>
+            <span class="text-slate-800">${parts[1] || ''}</span>
+          `;
+
+          const options = [...item.options].sort(() => Math.random() - 0.5);
+
+          container.innerHTML = `
+            <div class="space-y-6">
+              <div class="flex items-center justify-between">
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Rally de Fluidez y Comprensión
+                </span>
+                <span class="text-2xl animate-bounce">🐧🧊</span>
+              </div>
+
+              <!-- Oración incompleta -->
+              <div class="bg-gradient-to-r from-indigo-50 to-sky-50 p-6 md:p-8 rounded-3xl border-2 border-indigo-200 text-center">
+                <p class="font-kids font-bold text-xl md:text-3xl leading-relaxed">
+                  ${sentenceHtml}
+                </p>
+                <button id="btn-listen-full-sentence" class="mt-4 inline-flex items-center gap-1 text-xs text-indigo-700 bg-white border border-indigo-200 px-3 py-1 rounded-full shadow-sm hover:bg-indigo-50 font-bold transition">
+                  <span>🔊</span> Leer oración completa
+                </button>
+              </div>
+
+              <!-- Opciones de palabra faltante -->
+              <div class="space-y-3">
+                <p class="text-center text-xs font-bold text-slate-500">¿Qué palabra encaja exactamente para que tenga sentido?</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  ${options.map(opt => `
+                    <button class="level4-opt-btn py-4 px-3 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50 text-slate-800 font-kids font-bold text-xl md:text-2xl shadow-sm transition" data-word="${opt}">
+                      ${opt}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.getElementById('btn-listen-full-sentence').addEventListener('click', () => {
+            const completed = item.sentence.replace('______', item.missingWord);
+            speakText(completed);
+          });
+
+          // Listeners de opciones
+          container.querySelectorAll('.level4-opt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const selected = btn.getAttribute('data-word');
+              if (selected === item.missingWord) {
+                document.getElementById('blank-target').textContent = selected;
+                document.getElementById('blank-target').classList.remove('bg-indigo-100', 'text-indigo-700', 'border-dashed');
+                document.getElementById('blank-target').classList.add('bg-emerald-500', 'text-white', 'border-solid');
+                this.handleCorrectOption(btn, selected);
+              } else {
+                this.handleIncorrectOption(btn);
+              }
+            });
+          });
+        }
+
+        // ================= MANEJO DE RESPUESTAS =================
+        handleCorrectOption(btnElement, wordText) {
+          sfx.correct();
+          btnElement.classList.remove('bg-slate-50', 'border-slate-200');
+          btnElement.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600', 'scale-105');
+
+          // Pequeño estallido de confeti sutil
+          if (typeof confetti === 'function') {
+            confetti({
+              particleCount: 25,
+              spread: 60,
+              origin: { y: 0.7 }
+            });
+          }
+
+          this.correctAnswersCount++;
+
+          // Deshabilitar otros botones momentáneamente
+          const parent = btnElement.parentElement;
+          if (parent) {
+            parent.querySelectorAll('button').forEach(b => b.classList.add('pointer-events-none'));
+          }
+
+          setTimeout(() => {
+            this.currentRound++;
+            this.loadNextRound();
+          }, 1000);
+        }
+
+        handleIncorrectOption(btnElement) {
+          sfx.tryAgain();
+          btnElement.classList.add('bg-rose-100', 'border-rose-300', 'text-rose-700', 'animate-shake');
+          setTimeout(() => {
+            btnElement.classList.remove('bg-rose-100', 'border-rose-300', 'text-rose-700');
+          }, 800);
+        }
+
+        finishLevel() {
+          sfx.fanfare();
+          if (typeof confetti === 'function') {
+            confetti({
+              particleCount: 80,
+              spread: 80,
+              origin: { y: 0.6 }
+            });
+          }
+
+          // Calcular estrellas (1 a 3)
+          let starsEarned = 1;
+          const ratio = this.correctAnswersCount / this.maxRounds;
+          if (ratio >= 0.8) starsEarned = 3;
+          else if (ratio >= 0.6) starsEarned = 2;
+
+          // Guardar si es récord
+          const prev = this.state.levelStars[this.currentLevel] || 0;
+          if (starsEarned > prev) {
+            const diff = starsEarned - prev;
+            this.state.stars += diff;
+            this.state.levelStars[this.currentLevel] = starsEarned;
+          }
+
+          this.saveState();
+
+          // Configurar pantalla de resumen
+          document.getElementById('summary-words-count').textContent = this.maxRounds;
+          document.getElementById('summary-accuracy').textContent = `${Math.round(ratio * 100)}%`;
+
+          const starsContainer = document.getElementById('summary-stars-container');
+          starsContainer.innerHTML = '⭐'.repeat(starsEarned) + '☆'.repeat(3 - starsEarned);
+
+          const feedbackTexts = {
+            1: '¡Genial! Has conectado las sílabas con fluidez y velocidad. ¡Sigue así!',
+            2: '¡Asombroso! Tus ojos están captando palabras completas como un rayo.',
+            3: '¡Maravilloso! Leíste oraciones con ritmo y excelente comprensión.',
+            4: '¡Eres un Gran Lector de Chile! Has completado el rally con éxito.'
+          };
+          document.getElementById('summary-feedback-text').textContent = feedbackTexts[this.currentLevel] || '¡Gran trabajo!';
+
+          this.showView('summary');
+        }
+      }
+
+      // Inicializar cuando el DOM esté listo
+      window.addEventListener('DOMContentLoaded', () => {
+        window.gameApp = new ReadingGameApp();
+      });
+    })();
+  </script>
+</body>
+</html>
